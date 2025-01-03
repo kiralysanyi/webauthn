@@ -67,7 +67,7 @@ interface AuthenticationChecks {
 
 
 
-export async function verifyAuthentication(authenticationJson: AuthenticationJSON, credential: CredentialInfo, expected: AuthenticationChecks): Promise<AuthenticationInfo> {
+export async function verifyAuthentication(authenticationJson: AuthenticationJSON, credential: CredentialInfo, expected: AuthenticationChecks, expectedRpId: string): Promise<AuthenticationInfo> {
     if (authenticationJson.id !== credential.id)
         throw new Error(`Credential ID mismatch: ${authenticationJson.id} vs ${credential.id}`)
 
@@ -101,7 +101,12 @@ export async function verifyAuthentication(authenticationJson: AuthenticationJSO
         throw new Error(`Unexpected ClientData challenge: ${client.challenge}`)
 
     // this only works because we consider `rp.origin` and `rp.id` to be the same during authentication/registration
-    const rpId = expected.domain ?? new URL(client.origin).hostname
+    let rpId = expected.domain ?? new URL(client.origin).hostname
+
+    if (expectedRpId != null) {
+        rpId = expectedRpId
+    }
+    
     const expectedRpIdHash = utils.toBase64url(await utils.sha256(utils.toBuffer(rpId)))
     if (authenticator.rpIdHash !== expectedRpIdHash)
         throw new Error(`Unexpected RpIdHash: ${authenticator.rpIdHash} vs ${expectedRpIdHash}`)
